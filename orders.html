@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout - ShopEasy</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="brand">ShopEasy</a>
+  <div class="nav-links" id="nav-links"></div>
+</nav>
+
+<div class="container">
+  <h1 class="page-title">Checkout</h1>
+
+  <div id="checkout-content">
+    <div class="cart-summary" style="margin-bottom: 20px;">
+      <h3 style="margin-top:0;">Order Summary</h3>
+      <div id="order-items"></div>
+      <div class="row total">
+        <span>Total</span>
+        <span id="order-total"></span>
+      </div>
+    </div>
+
+    <div class="form-card" style="margin: 0;">
+      <h2>Shipping Address</h2>
+      <div id="form-message"></div>
+      <form id="checkout-form">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="fullName" required>
+        </div>
+        <div class="form-group">
+          <label>Address</label>
+          <input type="text" id="addressLine" required>
+        </div>
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" id="city" required>
+        </div>
+        <div class="form-group">
+          <label>Postal Code</label>
+          <input type="text" id="postalCode" required>
+        </div>
+        <div class="form-group">
+          <label>Country</label>
+          <input type="text" id="country" required>
+        </div>
+        <button type="submit" class="btn btn-block">Place Order</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+<script>
+requireLogin();
+
+const cart = getCart();
+if (cart.length === 0) {
+  window.location.href = "cart.html";
+}
+
+document.getElementById("order-items").innerHTML = cart.map(item => `
+  <div class="row"><span>${escapeHtml(item.name)} x${item.quantity}</span><span>${formatMoney(item.price * item.quantity)}</span></div>
+`).join("");
+document.getElementById("order-total").textContent = formatMoney(cartTotal());
+
+document.getElementById("checkout-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("form-message");
+  msg.innerHTML = "";
+
+  const shippingAddress = {
+    fullName: document.getElementById("fullName").value,
+    addressLine: document.getElementById("addressLine").value,
+    city: document.getElementById("city").value,
+    postalCode: document.getElementById("postalCode").value,
+    country: document.getElementById("country").value
+  };
+
+  const items = cart.map(item => ({ productId: item.productId, quantity: item.quantity }));
+
+  try {
+    await apiFetch("/orders", {
+      method: "POST",
+      body: JSON.stringify({ items, shippingAddress })
+    });
+    clearCart();
+    window.location.href = "orders.html";
+  } catch (err) {
+    msg.innerHTML = `<p class="form-error">${escapeHtml(err.message)}</p>`;
+  }
+});
+</script>
+
+</body>
+</html>
